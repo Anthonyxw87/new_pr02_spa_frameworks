@@ -10,6 +10,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Paper from '@mui/material/Paper';
+import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import MenuIcon from '@mui/icons-material/Menu';
 import Checkbox from '@mui/material/Checkbox';
 import Button from '@mui/material/Button';
@@ -53,97 +54,149 @@ function App() {
   let [titleValidator, setTitleValidator] = React.useState('');
   let [descriptionValidator, setDescriptionValidator] = React.useState('');
 
+  // changes the title of the dialog
   let changeTitle = (value) => {
     setTitle(value);
     validateTitle(value);
   };
 
+  // returns whether or not the title is valid
   let validateTitle = (value) => {
     setError(false);
     let errors = [];
+    // if title is empty, returns an error
     if (!value) {
       errors.push('Title is Required!');
       setError(true);
     }
+
+    // loops through the entire task list to see if current title matches any of the other titles, which in turn would return an error
     for (let i = 0; i < taskArray.length; i++) {
       if (taskArray[i].title === value) {
         errors.push('Title is not unique!');
         setError(true);
       }
     }
-    let results = errors.join();
-    setTitleValidator(results);
-    return results;
+
+    let anyErrors = errors.join();
+    setTitleValidator(anyErrors);
+    return anyErrors;
   };
 
+  // sets updateOpen to true which opens up the dialog
   const handleUpdateClickOpen = () => {
     setUpdateOpen(true);
   };
+
+  // sets updateOpen to false which closes the dialog
   const handleUpdateClickClosed = () => {
     setUpdateOpen(false);
   };
 
+  const handleClickOpen = () => {
+    setOpenTask(true);
+  };
+
+  const handleClickClosed = () => {
+    setOpenTask(false);
+  };
+
+  // changes the value of the description
   let changeDescription = (value) => {
     setDescription(value);
     validateDescription(value);
   };
 
+  // returns whether the description is valid
   let validateDescription = (value) => {
     setError(false);
     let errors = [];
+    // if the description is empty, returns an error
     if (!value) {
       errors.push('Description is Required!');
       setError(true);
     }
-    let results = errors.join();
-    setDescriptionValidator(results);
-    return results;
+    let anyErrors = errors.join();
+    setDescriptionValidator(anyErrors);
+    return anyErrors;
   };
 
+  // changes the value of the deadline
   function changeDeadline(value) {
     setDeadline(value);
   }
 
-  let submit = () => {
+
+  // creates a row with the required data to add to the table 
+  function createData() {
+    let data = {
+      title,
+      description,
+      deadline,
+      priority,
+      isComplete: false,
+      index,
+    };
+
+    taskArray.push(data);
+
+    setIndex(taskArray.length);
+    reset();
+    toastr['success']("Form was successfully submitted");
+  }
+
+  // adds a task row with all the required components into the table
+  let add = () => {
+    // if there are any validation errors for title and description, returns a toastr and appropriate errors
     if (validateTitle(title) || validateDescription(description)) {
-      toastr.error(`Could not submit form!`, ``, {
+      toastr.error(`Form is not Valid`, ``, {
         positionClass: 'toast-bottom-right',
       });
       return;
     }
-    createData();
+
+    createData();   //inserts the data into the table
+    //closes the dialog
     handleClickClosed();
     handleUpdateClickClosed();
-    //thingie();
   };
 
-  let updateSubmit = () => {
+
+  // sets the changed values into the selected task row
+  function changeData() {
+    let data = {
+      title,
+      description,
+      deadline,
+      priority,
+      isComplete: false,
+      index,
+    };
+
+    taskArray[index] = data;
+
+    setIndex(taskArray.length);
+    reset();
+    toastr['success']("Form was successfully edited!");
+  }
+
+  let editSubmit = () => {
+    // if there are validation errors for description value, returns a error toastr 
     if (validateDescription(description)) {
       toastr.error(`Could not submit form!`, ``, {
         positionClass: 'toast-bottom-right',
       });
       return;
     }
-    createData();
+    changeData();
+    //closes the dialog
     handleClickClosed();
     handleUpdateClickClosed();
   };
 
-  //update a task
+  // the current description and deadline shows up before any editing is done
   function updateTasks(index) {
-    let desiredTaskArrayId = -1;
-    for (let i = 0; i < taskArray.length && desiredTaskArrayId === -1; i++) {
-      if (taskArray[i].index === index) {
-        // taskArray[i] is the task that you want to update isComplete
-        desiredTaskArrayId = i;
-      }
-    }
-    index = desiredTaskArrayId;
     let daData = taskArray[index];
-    //console.log(data);
-    //taskArray.push(data);
-    //setIndex(data.index);
-    setAdding(false);
     setDescription(daData.description);
     setTitle(daData.title);
     setPriority(daData.priority);
@@ -155,39 +208,25 @@ function App() {
     });
   }
 
-  const handleClickOpen = () => {
-    setOpenTask(true);
-  };
-
-  const handleClickClosed = () => {
-    setOpenTask(false);
-  };
-
-  function createData() {
-    let data = {
-      title,
-      description,
-      deadline,
-      priority,
-      isComplete: false,
-      index,
-    };
-
-    if (adding) {
-      taskArray.push(data);
-    } else {
-      taskArray[index] = data;
-    }
-
-    setIndex(taskArray.length);
-    setDescription('');
+  function reset() {
+    // resets everything back to origin whenever the dialog is cancelled
+    setError(false);
     setTitle('');
+    setTitleValidator('');
+    setDescription('');
+    setDescriptionValidator('');
     setPriority('');
     setDeadline('');
-    toastr.success(`Task added successfully!`, ``, {
-      positionClass: 'toast-bottom-right',
-    });
   }
+
+  let changeCheckbox = (index) => {
+    setTaskArray((array) => {
+      let newTaskArray = [...array];
+      newTaskArray[index].isComplete =
+        !array[index].isComplete;
+      return newTaskArray;
+    });
+  };
 
   return (
     <>
@@ -207,7 +246,6 @@ function App() {
               helperText={titleValidator}
               value={title}
               onChange={(e) => changeTitle(e.target.value)}
-              display
             />
           ) : null}
           {openTask ? <br></br> : null}
@@ -265,7 +303,7 @@ function App() {
 
         <DialogActions sx={{ bgcolor: 'white' }}>
           <Button
-            onClick={() => { openTask ? submit() : updateSubmit() }}
+            onClick={() => { openTask ? add() : editSubmit() }}
             variant="contained"
             sx={{ width: 100 }}
             autoFocus
@@ -278,6 +316,7 @@ function App() {
             onClick={() => {
               handleClickClosed();
               handleUpdateClickClosed();
+              reset();
             }}
             variant="contained"
             sx={{ bgcolor: 'red', width: 100 }}
@@ -348,16 +387,18 @@ function App() {
                     <TableCell align="center">{data.priority}</TableCell>
                     <TableCell align="center">
                       <div>
-                        {/*update button*/}
+                        {/* checkbox */}
                         {data.isComplete ? (
                           <div>
                             <Checkbox
                               defaultChecked
+                              onClick={() => changeCheckbox(data.index)}
                             />
                           </div>
                         ) : (
                           <div>
                             <Checkbox
+                              onClick={() => changeCheckbox(data.index)}
                             />
                           </div>
                         )}
@@ -377,13 +418,11 @@ function App() {
                                 handleUpdateClickOpen();
                               }}
                             >
-                              <i className="fa fa-fw fa-edit"></i>
+                              <EditIcon />
                               &nbsp;Update
                             </Button>
                           </div>
-                        ) : (
-                          <></>
-                        )}
+                        ) : null}
                         {/*delete button*/}
                         <div>
                           <Button
@@ -391,7 +430,7 @@ function App() {
                             variant="contained"
                             sx={{ bgcolor: '#f44336', width: 100 }}
                           >
-                            <i className="fa fa-fw fa-times-circle"></i>
+                            <HighlightOffIcon fontSize="small" />
                             &nbsp;Delete
                           </Button>
                         </div>
