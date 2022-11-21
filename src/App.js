@@ -30,29 +30,30 @@ import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import DoNotDisturbAltRoundedIcon from '@mui/icons-material/DoNotDisturbAltRounded';
 import EditIcon from '@mui/icons-material/Edit';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 //js libraries
 import moment from 'moment';
-import toastr from 'toastr';
-
-
-
 
 
 function App() {
-  let [title, setTitle] = React.useState('');
-  let [description, setDescription] = React.useState('');
-  let [deadline, setDeadline] = React.useState('');
-  let [priority, setPriority] = React.useState('');
-  let [isComplete, setIsComplete] = React.useState(false);
-  let [index, setIndex] = React.useState(0);
-  let [taskArray, setTaskArray] = React.useState([]);
-  let [adding, setAdding] = React.useState(false);
-  let [openTask, setOpenTask] = React.useState(false);
-  let [updateOpen, setUpdateOpen] = React.useState(false);
+  const [title, setTitle] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  const [deadline, setDeadline] = React.useState('');
+  const [priority, setPriority] = React.useState('');
+  const [index, setIndex] = React.useState(0);
+  const [taskArray, setTaskArray] = React.useState([]);
+  const [openTask, setOpenTask] = React.useState(false);
+  const [updateOpen, setUpdateOpen] = React.useState(false);
   const [error, setError] = React.useState(false);
-  let [titleValidator, setTitleValidator] = React.useState('');
-  let [descriptionValidator, setDescriptionValidator] = React.useState('');
+  const [titleValidator, setTitleValidator] = React.useState('');
+  const [descriptionValidator, setDescriptionValidator] = React.useState('');
+
+  //toastrs
+  const deleteSuccess = () => toast.success('Task successfully deleted');
+  const addSuccess = () => toast.success('Task successfully added');
+  const updateSuccess = () => toast.success('Task successfully updated');
 
   // changes the title of the dialog
   let changeTitle = (value) => {
@@ -142,16 +143,13 @@ function App() {
 
     setIndex(taskArray.length);
     reset();
-    toastr['success']("Form was successfully submitted");
+    addSuccess();
   }
 
   // adds a task row with all the required components into the table
   let add = () => {
     // if there are any validation errors for title and description, returns a toastr and appropriate errors
     if (validateTitle(title) || validateDescription(description)) {
-      toastr.error(`Form is not Valid`, ``, {
-        positionClass: 'toast-bottom-right',
-      });
       return;
     }
 
@@ -177,15 +175,12 @@ function App() {
 
     setIndex(taskArray.length);
     reset();
-    toastr['success']("Form was successfully edited!");
+    updateSuccess();
   }
 
   let editSubmit = () => {
     // if there are validation errors for description value, returns a error toastr 
     if (validateDescription(description)) {
-      toastr.error(`Could not submit form!`, ``, {
-        positionClass: 'toast-bottom-right',
-      });
       return;
     }
     changeData();
@@ -202,10 +197,6 @@ function App() {
     setPriority(daData.priority);
     setDeadline(daData.deadline);
     setIndex(daData.index);
-
-    toastr.success(`Task updated successfully!`, ``, {
-      positionClass: 'toast-bottom-right',
-    });
   }
 
   function reset() {
@@ -226,6 +217,13 @@ function App() {
         !array[index].isComplete;
       return newTaskArray;
     });
+  };
+
+  const deleteEntry = (index) => {
+    let newArrs = [...taskArray];
+    newArrs.splice(index, 1);
+    setTaskArray(newArrs);
+    deleteSuccess();
   };
 
   return (
@@ -328,120 +326,137 @@ function App() {
         </DialogActions>
       </Dialog>
       <Card sx={{ margin: '0%' }}>
-        <CardHeader
-          sx={{ bgcolor: 'primary.dark', color: 'white' }}
-          title={
-            <>
-              <MenuIcon />
-              FRAMEWORKS
-            </>
-          }
-          style={{ textAlign: 'center' }}
-          action={
-            <>
-              <Button
-                variant="contained"
-                onClick={() => {
-                  handleClickOpen();
-                }}
-                sx={{ width: 100, marginRight: '15px' }}
-              >
-                <AddCircleIcon />
-                &nbsp; ADD
-              </Button>
-            </>
-          }
-        ></CardHeader>
-        <CardContent>
-          <TableContainer component={Paper}>
-            <Table sx={{ minWidth: 700 }} aria-label="customized table">
-              <TableHead>
-                <TableRow>
-                  <TableCell align="center" sx={{ color: 'gray' }}>
-                    Title
-                  </TableCell>
-                  <TableCell align="center" sx={{ color: 'gray' }}>
-                    Description
-                  </TableCell>
-                  <TableCell align="center" sx={{ color: 'gray' }}>
-                    Deadline
-                  </TableCell>
-                  <TableCell align="center" sx={{ color: 'gray' }}>
-                    Priority
-                  </TableCell>
-                  <TableCell align="center" sx={{ color: 'gray' }}>
-                    Is Complete
-                  </TableCell>
-                  <TableCell align="center" sx={{ color: 'gray' }}>
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {''}
-                {taskArray.map((data) =>
-                  <TableRow key={data.index}>
-                    <TableCell align="center">{data.title}</TableCell>
-                    <TableCell align="center">{data.description}</TableCell>
-                    <TableCell align="center">{moment(data.deadline).format('MM/DD/YY')}</TableCell>
-                    <TableCell align="center">{data.priority}</TableCell>
-                    <TableCell align="center">
-                      <div>
-                        {/* checkbox */}
-                        {data.isComplete ? (
-                          <div>
-                            <Checkbox
-                              defaultChecked
-                              onClick={() => changeCheckbox(data.index)}
-                            />
-                          </div>
-                        ) : (
-                          <div>
-                            <Checkbox
-                              onClick={() => changeCheckbox(data.index)}
-                            />
-                          </div>
-                        )}
-                      </div>
+        <div>
+          <CardHeader
+            sx={{ bgcolor: 'primary.dark', color: 'white' }}
+            title={
+              <>
+                <MenuIcon />
+                FRAMEWORKS
+              </>
+            }
+            style={{ textAlign: 'center' }}
+            action={
+              <>
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    handleClickOpen();
+                  }}
+                  sx={{ width: 100, marginRight: '15px' }}
+                >
+                  <AddCircleIcon />
+                  &nbsp; ADD
+                </Button>
+              </>
+            }
+          ></CardHeader>
+          <CardContent>
+            <TableContainer component={Paper}>
+              <Table sx={{ minWidth: 700 }} aria-label="customized table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell align="center" sx={{ color: 'gray' }}>
+                      Title
                     </TableCell>
-                    <TableCell align="center">
-                      <div>
-                        {/*update button*/}
-                        {!data.isComplete ? (
-                          <div>
-                            <Button
-                              variant="contained"
-                              sx={{ width: 100 }}
-                              id="update"
-                              onClick={() => {
-                                updateTasks(data.index);
-                                handleUpdateClickOpen();
-                              }}
-                            >
-                              <EditIcon />
-                              &nbsp;Update
-                            </Button>
-                          </div>
-                        ) : null}
-                        {/*delete button*/}
-                        <div>
-                          <Button
-                            color="error"
-                            variant="contained"
-                            sx={{ bgcolor: '#f44336', width: 100 }}
-                          >
-                            <HighlightOffIcon fontSize="small" />
-                            &nbsp;Delete
-                          </Button>
-                        </div>
-                      </div>
+                    <TableCell align="center" sx={{ color: 'gray' }}>
+                      Description
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: 'gray' }}>
+                      Deadline
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: 'gray' }}>
+                      Priority
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: 'gray' }}>
+                      Is Complete
+                    </TableCell>
+                    <TableCell align="center" sx={{ color: 'gray' }}>
+                      Action
                     </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
+                </TableHead>
+                <TableBody>
+                  {''}
+                  {taskArray.map((data) =>
+                    <TableRow key={data.index}>
+                      <TableCell align="center">{data.title}</TableCell>
+                      <TableCell align="center">{data.description}</TableCell>
+                      <TableCell align="center">{moment(data.deadline).format('MM/DD/YY')}</TableCell>
+                      <TableCell align="center">{data.priority}</TableCell>
+                      <TableCell align="center">
+                        <div>
+                          {/* checkbox */}
+                          {data.isComplete ? (
+                            <div>
+                              <Checkbox
+                                defaultChecked
+                                onClick={() => changeCheckbox(data.index)}
+                              />
+                            </div>
+                          ) : (
+                            <div>
+                              <Checkbox
+                                onClick={() => changeCheckbox(data.index)}
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell align="center">
+                        <div>
+                          {/*update button*/}
+                          {!data.isComplete ? (
+                            <div>
+                              <Button
+                                variant="contained"
+                                sx={{ width: 100 }}
+                                id="update"
+                                onClick={() => {
+                                  updateTasks(data.index);
+                                  handleUpdateClickOpen();
+                                }}
+                              >
+                                <EditIcon />
+                                &nbsp;Update
+                              </Button>
+                            </div>
+                          ) : null}
+                          {/*delete button*/}
+                          <div>
+                            <Button
+                              color="error"
+                              variant="contained"
+                              onClick={() => {
+                                deleteEntry(data.index);
+                              }}
+                              sx={{ bgcolor: '#f44336', width: 100 }}
+                            >
+                              <HighlightOffIcon fontSize="small" />
+                              &nbsp;Delete
+                            </Button>
+                          </div>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </CardContent>
+          {/*TOASTER CONTAINER SO TOASTS CAN DISPLAY */}
+          <ToastContainer
+            position="bottom-right"
+            autoClose={2500}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
+        </div>
       </Card>
     </>
   );
