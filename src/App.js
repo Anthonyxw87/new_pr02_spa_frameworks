@@ -1,5 +1,6 @@
-import * as React from 'react';
-import { styled } from '@mui/material/styles';
+// Anthony Wang CSDS 221 pr02: Frameworks
+
+import React from 'react';
 import Table from '@mui/material/Table';
 import Card from '@mui/material/Card';
 import CardHeader from '@mui/material/CardHeader';
@@ -10,25 +11,20 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Paper from '@mui/material/Paper';
-import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import MenuIcon from '@mui/icons-material/Menu';
 import Checkbox from '@mui/material/Checkbox';
 import Button from '@mui/material/Button';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import { CardContent } from '@mui/material';
-import { useState } from 'react'
-import AdapterMoment from '@mui/lab/AdapterMoment';
-import LocalizationProvider from '@mui/lab/LocalizationProvider';
 import Dialog from '@mui/material/Dialog';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
-import DatePicker from '@mui/lab/DatePicker';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TextField from '@mui/material/TextField';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import DoNotDisturbAltRoundedIcon from '@mui/icons-material/DoNotDisturbAltRounded';
+import CancelIcon from '@mui/icons-material/Cancel';
 import EditIcon from '@mui/icons-material/Edit';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -43,45 +39,27 @@ function App() {
   const [deadline, setDeadline] = React.useState('');
   const [priority, setPriority] = React.useState('');
   const [index, setIndex] = React.useState(0);
-  const [taskArray, setTaskArray] = React.useState([]);
+  const [arrayEntries, setArrayEntries] = React.useState([]);
   const [openTask, setOpenTask] = React.useState(false);
+  const [storedIndex, setStoredIndex] = React.useState(-1);
   const [updateOpen, setUpdateOpen] = React.useState(false);
   const [error, setError] = React.useState(false);
   const [titleValidator, setTitleValidator] = React.useState('');
   const [descriptionValidator, setDescriptionValidator] = React.useState('');
 
   //toastrs
-  const deleteSuccess = () => toast.success('Task successfully deleted');
-  const addSuccess = () => toast.success('Task successfully added');
-  const updateSuccess = () => toast.success('Task successfully updated');
+  const addingSuccess = () => toast.success('Task successfully added');
+  const updatingSuccess = () => toast.success('Task successfully updated');
+  const deletingSuccess = () => toast.success('Task successfully deleted');
 
-  // changes the title of the dialog
-  let changeTitle = (value) => {
-    setTitle(value);
-    validateTitle(value);
+  // sets openTask to true which opens up the dialog
+  const handleClickOpen = () => {
+    setOpenTask(true);
   };
 
-  // returns whether or not the title is valid
-  let validateTitle = (value) => {
-    setError(false);
-    let errors = [];
-    // if title is empty, returns an error
-    if (!value) {
-      errors.push('Title is Required!');
-      setError(true);
-    }
-
-    // loops through the entire task list to see if current title matches any of the other titles, which in turn would return an error
-    for (let i = 0; i < taskArray.length; i++) {
-      if (taskArray[i].title === value) {
-        errors.push('Title is not unique!');
-        setError(true);
-      }
-    }
-
-    let anyErrors = errors.join();
-    setTitleValidator(anyErrors);
-    return anyErrors;
+  // sets openTask to false which closes the dialog
+  const handleClickClosed = () => {
+    setOpenTask(false);
   };
 
   // sets updateOpen to true which opens up the dialog
@@ -94,25 +72,54 @@ function App() {
     setUpdateOpen(false);
   };
 
-  const handleClickOpen = () => {
-    setOpenTask(true);
+  //Attributes of each entry
+  const [entry, setEntry] = React.useState({
+    title: '',
+    description: '',
+    deadline: '',
+    priority: '',
+    complete: false,
+  });
+
+  // changes the title of the dialog
+  let changeTitle = (value) => {
+    setEntry({ ...entry, title: value.target.value });
   };
 
-  const handleClickClosed = () => {
-    setOpenTask(false);
+  // returns whether or not the title is valid
+  let validateTitle = (value) => {
+    setError(false);
+    let errors = [];
+
+    // First test: check for empty title
+    if (!value) {
+      errors.push('Title is Required!');
+      setError(true);
+    }
+
+    // Second Test: check for duplicate titles
+    for (let i = 0; i < arrayEntries.length; i++) {
+      if (arrayEntries[i].title === value) {
+        errors.push('Title is not unique!');
+        setError(true);
+      }
+    }
+
+    let anyErrors = errors.join();
+    setTitleValidator(anyErrors);
+    return anyErrors;
   };
 
   // changes the value of the description
   let changeDescription = (value) => {
-    setDescription(value);
-    validateDescription(value);
+    setEntry({ ...entry, description: value.target.value });
   };
 
   // returns whether the description is valid
   let validateDescription = (value) => {
     setError(false);
     let errors = [];
-    // if the description is empty, returns an error
+    // checks for empty description 
     if (!value) {
       errors.push('Description is Required!');
       setError(true);
@@ -122,38 +129,34 @@ function App() {
     return anyErrors;
   };
 
-  // changes the value of the deadline
-  function changeDeadline(value) {
-    setDeadline(value);
+  // resets everything back to default whenever the dialog is cancelled
+  const reset = () => {
+    setEntry({
+      title: '',
+      description: '',
+      deadline: '',
+      priority: '',
+    });
+    setError(false);
+    setDescriptionValidator('');
+    setTitleValidator('');
+  };
+
+  // creates a entry with the required data to add to the table 
+  let createEntry = () => {
+    setArrayEntries((arrayEntries) => [...arrayEntries, entry]);
+    reset(); // resets the values of the entries for the next dialog use
+    addingSuccess(); // toaster pop up indicating a successful addition to the table
   }
 
-
-  // creates a row with the required data to add to the table 
-  function createData() {
-    let data = {
-      title,
-      description,
-      deadline,
-      priority,
-      isComplete: false,
-      index,
-    };
-
-    taskArray.push(data);
-
-    setIndex(taskArray.length);
-    reset();
-    addSuccess();
-  }
-
-  // adds a task row with all the required components into the table
+  // adds a entry with all the required components into the table
   let add = () => {
-    // if there are any validation errors for title and description, returns a toastr and appropriate errors
-    if (validateTitle(title) || validateDescription(description)) {
+    // if there are any validation errors for title and description, returns appropriate errors
+    if (validateTitle(entry.title) || validateDescription(entry.description)) {
       return;
     }
 
-    createData();   //inserts the data into the table
+    createEntry();   //inserts the entry into the table
     //closes the dialog
     handleClickClosed();
     handleUpdateClickClosed();
@@ -161,80 +164,83 @@ function App() {
 
 
   // sets the changed values into the selected task row
-  function changeData() {
-    let data = {
-      title,
-      description,
-      deadline,
-      priority,
-      isComplete: false,
-      index,
+  const changeEntry = () => {
+    let index = storedIndex;
+    let newEntry = [...arrayEntries];
+    let currentEntry = newEntry[index];
+    newEntry[index] = {
+      title: currentEntry.title,
+      description: entry.description,
+      deadline: entry.deadline,
+      priority: entry.priority,
+      complete: currentEntry.complete,
     };
 
-    taskArray[index] = data;
-
-    setIndex(taskArray.length);
+    setArrayEntries(newEntry);
     reset();
-    updateSuccess();
+    updatingSuccess();
   }
 
+  // this allows the already inputed values to be displayed in the edit task dialog
+  let updateValues = (index) => {
+    setStoredIndex(index);
+    let currentEntry = arrayEntries[index];
+    setEntry({
+      title: currentEntry.title,
+      description: currentEntry.description,
+      deadline: currentEntry.deadline,
+      priority: currentEntry.priority,
+    });
+
+  }
+
+  // edits an entry in the table
   let editSubmit = () => {
     // if there are validation errors for description value, returns a error toastr 
-    if (validateDescription(description)) {
+    if (validateDescription(entry.description)) {
       return;
     }
-    changeData();
+    changeEntry();
     //closes the dialog
     handleClickClosed();
     handleUpdateClickClosed();
   };
 
-  // the current description and deadline shows up before any editing is done
-  function updateTasks(index) {
-    let daData = taskArray[index];
-    setDescription(daData.description);
-    setTitle(daData.title);
-    setPriority(daData.priority);
-    setDeadline(daData.deadline);
-    setIndex(daData.index);
-  }
 
-  function reset() {
-    // resets everything back to origin whenever the dialog is cancelled
-    setError(false);
-    setTitle('');
-    setTitleValidator('');
-    setDescription('');
-    setDescriptionValidator('');
-    setPriority('');
-    setDeadline('');
-  }
-
-  let changeCheckbox = (index) => {
-    setTaskArray((array) => {
-      let newTaskArray = [...array];
-      newTaskArray[index].isComplete =
-        !array[index].isComplete;
-      return newTaskArray;
-    });
+  // makes the checkbox checked or unchecked and sets the value of complete to true
+  const toggleCheckbox = (index) => (e) => {
+    let newEntry = [...arrayEntries];
+    let currentEntry = newEntry[index];
+    let completes = currentEntry.complete;
+    newEntry[index] = {
+      title: currentEntry.title,
+      description: currentEntry.description,
+      deadline: currentEntry.deadline,
+      priority: currentEntry.priority,
+      complete: !completes,
+    };
+    setArrayEntries(newEntry);
   };
 
+  // deletes the entry
   const deleteEntry = (index) => {
-    let newArrs = [...taskArray];
-    newArrs.splice(index, 1);
-    setTaskArray(newArrs);
-    deleteSuccess();
+    let newEntry = [...arrayEntries];
+    newEntry.splice(index, 1);
+    setArrayEntries(newEntry);
+    deletingSuccess();
   };
 
   return (
     <>
       <Dialog open={openTask || updateOpen} onClose={handleClickClosed || handleUpdateClickClosed}>
+        {/* Title of dialog */}
         <DialogTitle sx={{ bgcolor: 'primary.dark', color: 'white' }}>
           {openTask ? 'Add Task' : 'Edit Task'}
         </DialogTitle>
         <br />
         <DialogContent>
-          {openTask ? (
+          {/* Title (only displays when its the add dialog) */}
+          {openTask && (
             <TextField
               error={error}
               sx={{ width: 1 }}
@@ -242,12 +248,14 @@ function App() {
               label="Title"
               placeholder="Type title..."
               helperText={titleValidator}
-              value={title}
-              onChange={(e) => changeTitle(e.target.value)}
+              value={entry.title}
+              onChange={(e) => changeTitle(e)}
             />
-          ) : null}
-          {openTask ? <br></br> : null}
-          {openTask ? <br></br> : null}
+          )}
+          {openTask && <br></br>}
+          {openTask && <br></br>}
+
+          {/* Description */}
           <TextField
             error={error}
             sx={{ width: 1 }}
@@ -255,18 +263,20 @@ function App() {
             label="Description"
             placeholder="Type description..."
             helperText={descriptionValidator}
-            value={description}
-            onChange={(e) => changeDescription(e.target.value)}
-            InputLabelProps={updateOpen ? { shrink: true } : null}
+            value={entry.description}
+            onChange={(e) => changeDescription(e)}
+            InputLabelProps={updateOpen && { shrink: true }}
           />
           <br />
           <br />
+
+          {/*Date Picker */}
           <TextField
             type="date"
             defaultValue="01/01/2022"
             id="dateInput"
-            value={deadline}
-            onChange={(e) => changeDeadline(e.target.value)}
+            value={entry.deadline}
+            onChange={(e) => setEntry({ ...entry, deadline: e.target.value })}
             label="Deadline"
             style={{ display: 'block' }}
             InputLabelProps={{
@@ -275,49 +285,42 @@ function App() {
             fullWidth
           />
           <br />
+
+          {/* Priority */}
           <br />
           Priority
           <br />
           <RadioGroup
             row
-            value={priority}
-            onChange={(e) => setPriority(e.target.value)}
+            value={entry.priority}
+            onChange={(e) => setEntry({ ...entry, priority: e.target.value })}
           >
             <FormControlLabel value="low" control={<Radio />} label="Low" />
             <FormControlLabel value="med" control={<Radio />} label="Medium" />
             <FormControlLabel value="high" control={<Radio />} label="High" />
           </RadioGroup>
-          <LocalizationProvider dateAdapter={AdapterMoment}>
-            <DatePicker
-              label="Deadline"
-              value={deadline}
-              onChange={(e) => {
-                //updateDate(e);
-              }}
-              renderInput={(params) => <TextField {...params} />}
-            />
-          </LocalizationProvider>
         </DialogContent>
 
         <DialogActions sx={{ bgcolor: 'white' }}>
           <Button
-            onClick={() => { openTask ? add() : editSubmit() }}
+            onClick={() => { openTask ? add() : editSubmit() }}   // onClick depends on which dialog is being used
             variant="contained"
-            sx={{ width: 100 }}
+            sx={{ width: '35%' }}
             autoFocus
           >
-            {openTask ? <AddCircleIcon /> : <EditIcon />}
+            {openTask ? <AddCircleIcon fontSize='small' /> : <EditIcon fontSize='small' />} 
             {openTask ? 'Add' : 'Edit'}
           </Button>
 
           <Button
             onClick={() => {
-              handleClickClosed();
-              handleUpdateClickClosed();
-              reset();
+              // closes the dialog 
+              handleClickClosed(); 
+              handleUpdateClickClosed();  
+              reset();  // resets values of dialog to blank when cancelled
             }}
             variant="contained"
-            sx={{ bgcolor: 'red', width: 100 }}
+            sx={{ bgcolor: 'red', width: '35%' }}
             autoFocus
           >
             <DoNotDisturbAltRoundedIcon fontSize="small" />
@@ -325,7 +328,7 @@ function App() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Card sx={{ margin: '0%' }}>
+      <Card sx={{ margin: '0.5%' }}>
         <div>
           <CardHeader
             sx={{ bgcolor: 'primary.dark', color: 'white' }}
@@ -341,9 +344,9 @@ function App() {
                 <Button
                   variant="contained"
                   onClick={() => {
-                    handleClickOpen();
+                    handleClickOpen(); // opens up the dialog when clicked
                   }}
-                  sx={{ width: 100, marginRight: '15px' }}
+                  sx={{ marginRight: '20px' }}
                 >
                   <AddCircleIcon />
                   &nbsp; ADD
@@ -378,42 +381,26 @@ function App() {
                 </TableHead>
                 <TableBody>
                   {''}
-                  {taskArray.map((data) =>
-                    <TableRow key={data.index}>
-                      <TableCell align="center">{data.title}</TableCell>
-                      <TableCell align="center">{data.description}</TableCell>
-                      <TableCell align="center">{moment(data.deadline).format('MM/DD/YY')}</TableCell>
-                      <TableCell align="center">{data.priority}</TableCell>
+                  {arrayEntries.map((entry, index) =>
+                    <TableRow key={entry.title}>
+                      <TableCell align="center">{entry.title}</TableCell>
+                      <TableCell align="center">{entry.description}</TableCell>
+                      <TableCell align="center">{moment(entry.deadline).format('MM/DD/YY')}</TableCell>
+                      <TableCell align="center">{entry.priority}</TableCell>
                       <TableCell align="center">
-                        <div>
-                          {/* checkbox */}
-                          {data.isComplete ? (
-                            <div>
-                              <Checkbox
-                                defaultChecked
-                                onClick={() => changeCheckbox(data.index)}
-                              />
-                            </div>
-                          ) : (
-                            <div>
-                              <Checkbox
-                                onClick={() => changeCheckbox(data.index)}
-                              />
-                            </div>
-                          )}
-                        </div>
+                        <Checkbox onChange={toggleCheckbox(index)} />
                       </TableCell>
                       <TableCell align="center">
                         <div>
-                          {/*update button*/}
-                          {!data.isComplete ? (
+                          {/* update button */}
+                          {!entry.complete && (
                             <div>
                               <Button
                                 variant="contained"
-                                sx={{ width: 100 }}
+                                sx={{ width: '50%' }}
                                 id="update"
                                 onClick={() => {
-                                  updateTasks(data.index);
+                                  updateValues(index);
                                   handleUpdateClickOpen();
                                 }}
                               >
@@ -421,18 +408,18 @@ function App() {
                                 &nbsp;Update
                               </Button>
                             </div>
-                          ) : null}
-                          {/*delete button*/}
+                          )}
+                          {/* delete button */}
                           <div>
                             <Button
                               color="error"
                               variant="contained"
                               onClick={() => {
-                                deleteEntry(data.index);
+                                deleteEntry(index);
                               }}
-                              sx={{ bgcolor: '#f44336', width: 100 }}
+                              sx={{ bgcolor: '#f44336', width: '50%' }}
                             >
-                              <HighlightOffIcon fontSize="small" />
+                              <CancelIcon font="small" />
                               &nbsp;Delete
                             </Button>
                           </div>
@@ -444,6 +431,7 @@ function App() {
               </Table>
             </TableContainer>
           </CardContent>
+
           {/*TOASTER CONTAINER SO TOASTS CAN DISPLAY */}
           <ToastContainer
             position="bottom-right"
